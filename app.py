@@ -36,6 +36,16 @@ def fetchOneDict(cursor):
     return d
 
 
+@app.route('/check')
+def check():
+    try:
+        mysql.connect()
+    except:
+        return jsonify({"error": "internal server error"})
+
+    return jsonify({"error": None})
+
+
 @app.route('/<target>/<int:count>')
 def index(target, count):
     if type(target) != str or len(target) != 2:
