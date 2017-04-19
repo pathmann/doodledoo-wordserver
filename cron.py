@@ -1,3 +1,5 @@
+import os
+
 from configparser import ConfigParser
 
 import pymysql
@@ -26,7 +28,8 @@ def translate(lang, srclang, sources, cursor, translator):
 
 def main():
     config = ConfigParser()
-    config.read('doodledoo.ini')
+    config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                'doodledoo.ini'))
     cfg = config["doodledoo"]
 
     con = pymysql.connect(host=cfg['dbhost'], user=cfg['dbuser'],
