@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from flaskext.mysql import MySQL
+import pymysql
 
 from configparser import ConfigParser
 
@@ -16,6 +17,8 @@ app.config['MYSQL_DATABASE_PASSWORD'] = config.get('doodledoo', 'dbpassword')
 app.config['MYSQL_DATABASE_DB'] = config.get('doodledoo', 'dbname')
 
 MAXFETCH = config.getint('doodledoo', 'maxfetch')
+MINCOMPLAIN = config.getint('doodledoo', 'mincomplain')
+MAXUSERCOMPLAIN = config.getint('doodledoo', 'maxusercomplain')
 
 mysql = MySQL()
 mysql.init_app(app)
@@ -42,6 +45,54 @@ def check():
         mysql.connect()
     except:
         return jsonify({"error": "internal server error"})
+
+    return jsonify({"error": None})
+
+
+@app.route('/<target>/complain')
+def complain(target):
+    if type(target) != str or len(target) != 2:
+        return jsonify({"error": "no locale given"})
+
+    con = mysql.connect()
+    cursor = con.cursor()
+
+    sender = request.remote_addr
+
+    cursor.execute("SELECT id FROM complaints WHERE sender=%s", (sender))
+    cs = cursor.fetchall()
+    if cs is not None and len(cs) >= MAXUSERCOMPLAIN:
+        return jsonify({"error": "maximum complaints exceeded"})
+
+    word = request.args.get('word')
+    reason = request.args.get('reason')
+
+    if word is None or reason is None:
+        return jsonify({"error": "invalid parameters"})
+
+    cursor.execute("SELECT id from languages WHERE locale=%s AND isready=1",
+                   (target))
+    language = fetchOneDict(cursor)
+
+    if language is None:
+        return jsonify({"error": "locale not found"})
+
+    cursor.execute("SELECT id FROM translations WHERE language=%s AND "
+                   "txt=%s", (language["id"], word))
+    trans = fetchOneDict(cursor)
+
+    if not trans:
+        return jsonify({"error": "word not found"})
+
+    try:
+        cursor.execute("INSERT INTO complaints (translation, reason, sender, "
+                       "time) VALUES (%s, %s, %s, %s)", (trans["id"], reason,
+                                                         sender, datetime.
+                                                         datetime.now()))
+
+        con.commit()
+    except pymysql.err.IntegrityError:
+        pass
 
     return jsonify({"error": None})
 
@@ -89,12 +140,9 @@ def index(target, count):
         if count > MAXFETCH:
             count = MAXFETCH
 
-        if language["issource"]:
-            cursor.execute("SELECT txt FROM sources WHERE language=%s "
-                           "ORDER BY RAND() LIMIT %s", (language["id"], count))
-        else:
-            cursor.execute("SELECT txt FROM translations WHERE language=%s "
-                           "ORDER BY RAND() LIMIT %s", (language["id"], count))
+        cursor.execute("SELECT txt FROM translations WHERE language=%s "
+                       "AND active=1 ORDER BY RAND() LIMIT %s",
+                       (language["id"], count))
         data = cursor.fetchall()
 
         if data is None:

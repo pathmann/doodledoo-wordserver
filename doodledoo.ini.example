@@ -1,5 +1,7 @@
 [doodledoo]
 maxfetch=5
+mincomplain=5
+maxusercomplain=10
 dbhost=localhost
 dbuser=doodledoo
 dbpassword=mysecretpass
