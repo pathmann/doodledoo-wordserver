@@ -1,0 +1,6 @@
+[doodledoo]
+maxfetch=5
+dbhost=localhost
+dbuser=doodledoo
+dbpassword=mysecretpass
+dbname=doodledoo
