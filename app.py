@@ -1,4 +1,5 @@
-from flask import Flask, jsonify, request
+import os
+from flask import Flask, jsonify, request, url_for, redirect
 from flaskext.mysql import MySQL
 import pymysql
 
@@ -8,7 +9,7 @@ import datetime
 
 
 config = ConfigParser()
-config.read('doodledoo.ini')
+config.read(os.path.join(os.path.dirname(__file__), 'doodledoo.ini'))
 
 app = Flask(__name__)
 app.config['MYSQL_DATABASE_HOST'] = config.get('doodledoo', 'dbhost')
@@ -48,6 +49,10 @@ def check():
 
     return jsonify({"error": None})
 
+
+@app.route('/')
+def root():
+    return redirect(url_for('check'))
 
 @app.route('/<target>/complain')
 def complain(target):
@@ -152,4 +157,4 @@ def index(target, count):
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0')
+    app.run(host='::')
